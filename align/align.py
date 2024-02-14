@@ -169,11 +169,11 @@ class NeedlemanWunsch:
 
         # first row and col of align matrix are -inf
 
-        # first row of gapA
+        # first row of align matrix
         for j in (range(len(self._seqA)+1)):
             self._align_matrix[0][j]=-np.inf
 
-        # first column of gapA
+        # first column of align matrix
         for i in (range(len(self._seqB)+1)):
             self._align_matrix[i][0]=-np.inf
 
@@ -215,6 +215,50 @@ class NeedlemanWunsch:
     
         return self._backtrace()
 
+
+    # for the values across all three matrices at (i,j), get the max, and return an update vector that describes where to move
+    def get_next_move(self, i, j):
+        mat_values={"M":self._align_matrix[i][j], "Ix":self._gapA_matrix[i][j], "Iy":self._gapB_matrix[i][j]}
+        max_key=max(mat_values, key=mat_values.get)
+        # check if there are multiple max values
+        max_key_list=[key for key,val in mat_values.items() if val==mat_values[max_key]]
+        return max_key_list
+    
+    def get_alignment_score(self):
+        prev_label_seq1=None
+        prev_label_seq2=None
+        alignment_score=0
+        alignment_print=[]
+        for s1, s2 in zip(self.seqA_align, self.seqB_align):
+            # if (mtype=="c"):
+            if (s1!="-" and s2!="-"):
+                if (s1==s2):
+                    # alignment_score+=match_val
+                    alignment_score+=self.sub_dict[(s1,s2)]
+                    alignment_print.append("|")
+                else:
+                    # alignment_score+=mismatch_val
+                    alignment_score+=self.sub_dict[(s1,s2)]
+                    alignment_print.append("·")
+            else:
+                if (s1=="-"):
+                    if (prev_label_seq1!="gap"):
+                        alignment_score+=self.gap_open+self.gap_extend
+                        prev_label_seq1="gap"
+                    else:
+                        alignment_score+=self.gap_extend
+                if (s2=="-"):
+                    if (prev_label_seq2!="gap"):
+                        alignment_score+=self.gap_open+self.gap_extend
+                        prev_label_seq2="gap"
+                    else:
+                        alignment_score+=self.gap_extend
+                alignment_print.append(" ")
+            # else:
+
+
+        return alignment_score, alignment_print, ''.join(self.seqA_align), ''.join(self.seqB_align)
+
     def _backtrace(self) -> Tuple[float, str, str]:
         """
         TODO
@@ -229,7 +273,55 @@ class NeedlemanWunsch:
          	(alignment score, seqA alignment, seqB alignment) : Tuple[float, str, str]
          		the score and corresponding strings for the alignment of seqA and seqB
         """
-        pass
+        # starting positions are the current positions (bottom right corner) - pos variable is changed while start_pos is our record of the starting position
+        start_pos=(len(self._seqB), len(self._seqA)) # -> curr_i=len(seq2), curr_j=len(seq1)
+        pos=start_pos
+
+        # alignment lists for sequences (they should be matching in length so we can draw 1 to 1 alignments)
+        seqA_align=[]
+        seqB_align=[]
+        update_vectors={"M":(-1,-1), "Ix":(-1,0), "Iy":(0,-1)} # where M -> go up left, Ix -> go up, Iy -> left
+
+        # method="highroad" 
+        method="lowroad"
+
+        # backtrace using the chosen method
+        while (sum(pos)!=0):
+            print(pos)
+            max_key_list=self.get_next_move(pos[0], pos[1])
+
+            # in the case of ties - for the highroad method, we prefer M; for the lowroad method, we prefer gaps
+            if len(max_key_list)>1:
+                if (method=="highroad"):
+                    max_key=max_key_list[0]
+                if (method=="lowroad"):
+                    max_key=max_key_list[1]
+            else:
+                max_key=max_key_list[0]
+
+            update_vector=update_vectors[max_key]
+
+            pos=tuple(map(sum,zip(pos,update_vector)))
+            if (max_key=="M"):
+                seqB_align.append(self._seqB[pos[0]])
+                seqA_align.append(self._seqA[pos[1]])
+            elif (max_key=="Ix"):
+                seqB_align.append(self._seqB[pos[0]])
+                seqA_align.append("-")
+            elif (max_key=="Iy"):
+                seqA_align.append(self._seqA[pos[1]])
+                seqB_align.append("-")
+                
+        # reverse lists
+        seqA_align.reverse()
+        seqB_align.reverse()
+
+        self.seqA_align=seqA_align
+        self.seqB_align=seqB_align
+
+        self.alignment_score, alignment_print, self.seqA_align, self.seqB_align=self.get_alignment_score()
+
+        # pass
 
         return (self.alignment_score, self.seqA_align, self.seqB_align)
 
