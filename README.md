@@ -1,3 +1,5 @@
+![BuildStatus](https://github.com/prathameshchati/HW4-NW/actions/workflows/pytest.yml/badge.svg?event=push)
+
 # Project 5
 Needleman Wunsch Algorithm
 
