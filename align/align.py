@@ -97,6 +97,39 @@ class NeedlemanWunsch:
                 elif start is True and res_2 == len(residue_list):
                     break
         return dict_sub
+    
+    # scoring function for matching base pairs (if matching -> 1, else -1)
+    def score(self, b1: str, b2: str) -> int:
+        s=-1
+        if (b1==b2):
+            s=1
+        return s
+    
+    # helper function to complete alignment matrix
+    def fill_M(self, i: int, j: int) -> float:
+        M=self._align_matrix[i-1][j-1]+self.score(self._seqB[i-1], self._seqA[j-1])
+        Ix=self._gapA_matrix[i-1][j-1]+self.score(self._seqB[i-1], self._seqA[j-1])
+        Iy=self._gapB_matrix[i-1][j-1]+self.score(self._seqB[i-1], self._seqA[j-1])
+        return max(M, Ix, Iy)
+
+    # helper function to complete gapA matrix
+    def fill_Ix(self, i: int, j: int) -> float:
+        M=self._align_matrix[i-1][j]+self.gap_open+self.gap_extend
+        Ix=self._gapA_matrix[i-1][j]+self.gap_extend
+        return max(M, Ix)
+
+    # helper function to complete gapB matrix
+    def fill_Iy(self, i: int, j: int) -> float:
+        M=self._align_matrix[i][j-1]+self.gap_open+self.gap_extend
+        Iy=self._gapB_matrix[i][j-1]+self.gap_extend
+        return max(M, Iy)
+    
+    # helper function that combines above three functions in a specific order 
+    def fill_alignment_matrix(self, i: int, j: int) -> Tuple[float, float, float]:
+        Mij=self.fill_M(i, j)
+        Ixij=self.fill_Ix(i, j)
+        Iyij=self.fill_Iy(i, j)
+        return Mij, Ixij, Iyij
 
     def align(self, seqA: str, seqB: str) -> Tuple[float, str, str]:
         """
@@ -123,17 +156,63 @@ class NeedlemanWunsch:
         self.alignment_score = 0
 
         # Initializing sequences for use in backtrace method
-        self._seqA = seqA
-        self._seqB = seqB
+        self._seqA = seqA # seq1 (y)
+        self._seqB = seqB # seq2 (x)
         
         # TODO: Initialize matrix private attributes for use in alignment
         # create matrices for alignment scores, gaps, and backtracing
-        pass
+        self._align_matrix=np.zeros((len(self._seqB)+1, len(self._seqA)+1))
+        self._gapA_matrix=np.zeros((len(self._seqB)+1, len(self._seqA)+1))
+        self._gapB_matrix=np.zeros((len(self._seqB)+1, len(self._seqA)+1))
 
+        # initialize values
+
+        # first row and col of align matrix are -inf
+
+        # first row of gapA
+        for j in (range(len(self._seqA)+1)):
+            self._align_matrix[0][j]=-np.inf
+
+        # first column of gapA
+        for i in (range(len(self._seqB)+1)):
+            self._align_matrix[i][0]=-np.inf
+
+        # M(0,0)=0
+        self._align_matrix[0][0]=0
+
+        # first row of gapA
+        for j in (range(len(self._seqA)+1)):
+            self._gapA_matrix[0][j]=-np.inf
+
+        # first column of gapA
+        for i in (range(len(self._seqB)+1)):
+            self._gapA_matrix[i][0]=self.gap_open+self.gap_extend*i
+
+        # first column of gapB
+        for i in (range(len(self._seqB)+1)):
+            self._gapB_matrix[i][0]=-np.inf
+
+        # first row of gapB
+        for j in (range(len(self._seqA)+1)):
+            self._gapB_matrix[0][j]=self.gap_open+self.gap_extend*j 
+
+        # pass
         
         # TODO: Implement global alignment here
-        pass      		
+        
+        # iterate through rows and columns and call helper functions to fill out the three matrices
+        for i in range(1, len(self._seqB)+1):
+            for j in range(1, len(self._seqA)+1):
+                # print(i,j)
+                self._align_matrix[i][j], self._gapA_matrix[i][j], self._gapB_matrix[i][j]=self.fill_alignment_matrix(i , j)
+        
+        
+        # pass      		
         		    
+        # TESTING BLOCK START #################################################
+        # return self._align_matrix, self._gapA_matrix, self._gapB_matrix        
+        # TESTING BLOCK END ###################################################
+    
         return self._backtrace()
 
     def _backtrace(self) -> Tuple[float, str, str]:
