@@ -108,7 +108,7 @@ def test_large_sequences():
     gg_seq, gg_header = read_fasta("./data/Gallus_gallus_BRD2.fa")
     mm_seq, mm_header = read_fasta("./data/Mus_musculus_BRD2.fa")
     br_seq, br_header = read_fasta("./data/Balaeniceps_rex_BRD2.fa")
-    tt_seq, tt_header = read_fasta("./data/tursiops_truncatus_BRD2.fa")
+    tt_seq, tt_header = read_fasta("./data/Tursiops_truncatus_BRD2.fa")
 
     # create instance
     gap_open=-10
