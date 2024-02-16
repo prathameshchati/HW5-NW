@@ -6,6 +6,12 @@ requires = [
 build-backend = "flit_core.buildapi"
 
 [tool.pytest.ini_options]
+filterwarnings = [
+  "ignore::DeprecationWarning"
+]
+addopts = [
+  "-p no:warnings"
+]
 pythonpath = [
   "."
 ]
@@ -20,6 +26,7 @@ dynamic = ["version", "description"]
 dependencies = [
     "pytest",
     "numpy",
+    "Bio"
 ]
 
 [project.urls]

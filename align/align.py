@@ -99,10 +99,15 @@ class NeedlemanWunsch:
         return dict_sub
     
     # scoring function for matching base pairs (if matching -> 1, else -1)
-    def score(self, b1: str, b2: str) -> int:
-        s=-1
-        if (b1==b2):
-            s=1
+    # def score(self, b1: str, b2: str) -> int:
+    #     s=-1
+    #     if (b1==b2):
+    #         s=1
+    #     return s
+    
+    # score based on blossom matrix
+    def score(self, b1, b2):
+        s=self.sub_dict[(b1,b2)]
         return s
     
     # helper function to complete alignment matrix
@@ -171,11 +176,14 @@ class NeedlemanWunsch:
 
         # first row of align matrix
         for j in (range(len(self._seqA)+1)):
-            self._align_matrix[0][j]=-np.inf
+            # self._align_matrix[0][j]=-np.inf
+            self._align_matrix[0][j]=self.gap_open+self.gap_extend*j 
+
 
         # first column of align matrix
         for i in (range(len(self._seqB)+1)):
-            self._align_matrix[i][0]=-np.inf
+            # self._align_matrix[i][0]=-np.inf 
+            self._align_matrix[i][0]=self.gap_open+self.gap_extend*i 
 
         # M(0,0)=0
         self._align_matrix[0][0]=0
@@ -183,6 +191,7 @@ class NeedlemanWunsch:
         # first row of gapA
         for j in (range(len(self._seqA)+1)):
             self._gapA_matrix[0][j]=-np.inf
+            # self._gapA_matrix[0][j]=self.gap_open+self.gap_extend*j 
 
         # first column of gapA
         for i in (range(len(self._seqB)+1)):
@@ -191,6 +200,7 @@ class NeedlemanWunsch:
         # first column of gapB
         for i in (range(len(self._seqB)+1)):
             self._gapB_matrix[i][0]=-np.inf
+            # self._gapA_matrix[i][0]=self.gap_open+self.gap_extend*i 
 
         # first row of gapB
         for j in (range(len(self._seqA)+1)):
@@ -224,6 +234,7 @@ class NeedlemanWunsch:
         max_key_list=[key for key,val in mat_values.items() if val==mat_values[max_key]]
         return max_key_list
     
+    # old alignment function kept for scoring if needed; alignment scorers are now at the bottom right of a matrix
     def get_alignment_score(self):
         prev_label_seq1=None
         prev_label_seq2=None
@@ -240,6 +251,10 @@ class NeedlemanWunsch:
                     # alignment_score+=mismatch_val
                     alignment_score+=self.sub_dict[(s1,s2)]
                     alignment_print.append("·")
+                
+                # reset previous label if we enter a sequenced region
+                prev_label_seq1=None
+                prev_label_seq2=None
             else:
                 if (s1=="-"):
                     if (prev_label_seq1!="gap"):
@@ -282,12 +297,12 @@ class NeedlemanWunsch:
         seqB_align=[]
         update_vectors={"M":(-1,-1), "Ix":(-1,0), "Iy":(0,-1)} # where M -> go up left, Ix -> go up, Iy -> left
 
-        # method="highroad" 
+        # method="highroad" # only works when bounds are initialized to infinity
         method="lowroad"
 
         # backtrace using the chosen method
         while (sum(pos)!=0):
-            print(pos)
+            # print(pos)
             max_key_list=self.get_next_move(pos[0], pos[1])
 
             # in the case of ties - for the highroad method, we prefer M; for the lowroad method, we prefer gaps
@@ -295,7 +310,9 @@ class NeedlemanWunsch:
                 if (method=="highroad"):
                     max_key=max_key_list[0]
                 if (method=="lowroad"):
-                    max_key=max_key_list[1]
+                    if ("M" in max_key_list):
+                        max_key_list.remove("M")
+                    max_key=max_key_list[0]
             else:
                 max_key=max_key_list[0]
 
@@ -320,6 +337,9 @@ class NeedlemanWunsch:
         self.seqB_align=seqB_align
 
         self.alignment_score, alignment_print, self.seqA_align, self.seqB_align=self.get_alignment_score()
+
+        # set alignment score to the bottom right of the alignment matrix
+        self.alignment_score=self._align_matrix[len(self._seqB)][len(self._seqA)]
 
         # pass
 
